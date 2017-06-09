@@ -19,8 +19,8 @@ internal class InputNeuronTest: Spek({
             }
 
             it("should have a unweighted input") {
-                assertThat( unit.inputs ).hasSize(1)
-                                         .contains(WeightedInput(1.0, 1.0))
+                assertThat( unit.weights ).hasSize(1)
+                                         .contains(1.0)
             }
         }
 

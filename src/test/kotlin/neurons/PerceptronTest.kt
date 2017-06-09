@@ -18,21 +18,21 @@ class PerceptronTest : Spek({
 		}
 
 		on("being constructed with inputs and weight") {
-			val givenInputs = listOf(
-                    WeightedInput(6.0,3.0),
-                    WeightedInput(7.0,4.0),
-                    WeightedInput(8.0,5.0))
-			unit = Perceptron(-4.0, givenInputs)
+			val givenInputs = listOf(6.0, 7.0, 8.0)
+            val desiredWeights = listOf(3.0,4.0,5.0)
+			unit = Perceptron(-4.0, givenInputs, desiredWeights)
 
 			it("should set the fields as expected") {
 				assertThat(unit.bias).isEqualTo(-4.0)
 				assertThat(unit.inputs).isEqualTo(givenInputs)
+				assertThat(unit.weights).isEqualTo(desiredWeights)
 			}
 		}
 
 		on("being constructed with values that should make it fire") {
-			val givenInputs = listOf( WeightedInput(0.0,-2.0), WeightedInput(0.0,-2.0) )
-			unit = Perceptron(3.0, givenInputs)
+			val givenInputs = listOf(0.0, 0.0)
+            val desiredWeights = listOf(-2.0,-2.0)
+			unit = Perceptron(3.0, givenInputs, desiredWeights)
 
 			it("should return 1 on being fired" ) {
 				assertThat( unit.fire() ).isEqualTo( 1.0 )
@@ -40,8 +40,9 @@ class PerceptronTest : Spek({
 		}
 
 		on("being constructed with values that should not make it fire") {
-			val givenInputs = listOf( WeightedInput(1.0,-2.0), WeightedInput(1.0,-2.0) )
-			unit = Perceptron(3.0, givenInputs)
+			val givenInputs = listOf(1.0, 1.0)
+            val desiredWeights = listOf(-2.0,-2.0)
+			unit = Perceptron(3.0, givenInputs, desiredWeights)
 
 			it("should return 0 on being fired" ) {
 				assertThat( unit.fire() ).isEqualTo( 0.0 )
