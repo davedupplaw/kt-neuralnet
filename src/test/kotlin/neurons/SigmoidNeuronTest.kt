@@ -23,34 +23,34 @@ internal class SigmoidNeuronTest : Spek({
         }
 
         on("being constructed with very large inputs and weights") {
-            val inputs = listOf(100.0,100.0,100.0)
             val weights = listOf(100.0,100.0,100.0)
-            unit = SigmoidNeuron(3.0, inputs, weights)
+            unit = SigmoidNeuron(3.0, weights)
 
             it("should return a value close to 1") {
-                assertThat(unit.fire()).isCloseTo(1.0, Offset.offset(0.01))
+                val inputs = listOf(100.0,100.0,100.0)
+                assertThat(unit.fire(inputs)).isCloseTo(1.0, Offset.offset(0.01))
                                        .isLessThanOrEqualTo(1.0)
             }
         }
 
         on("being constructed with very large negative inputs and weights") {
-            val inputs = listOf(-100.0,-100.0,-100.0)
             val weights = listOf(100.0,100.0,100.0)
-            unit = SigmoidNeuron(-3.0, inputs, weights)
+            unit = SigmoidNeuron(-3.0, weights)
 
             it("should return a value close to 0") {
-                assertThat(unit.fire()).isCloseTo(0.0, Offset.offset(0.01))
+                val inputs = listOf(-100.0,-100.0,-100.0)
+                assertThat(unit.fire(inputs)).isCloseTo(0.0, Offset.offset(0.01))
                         .isGreaterThanOrEqualTo(0.0)
             }
         }
 
         on("being constructed with moderate values and weights") {
-            val inputs = listOf(0.25,0.25)
             val weights = listOf(-2.0,-2.0)
-            unit = SigmoidNeuron(-1.0, inputs, weights)
+            unit = SigmoidNeuron(-1.0, weights)
 
             it("should return a value close to 0.12") {
-                assertThat(unit.fire()).isCloseTo(0.12, Offset.offset(0.01))
+                val inputs = listOf(0.25,0.25)
+                assertThat(unit.fire(inputs)).isCloseTo(0.12, Offset.offset(0.01))
             }
         }
     }

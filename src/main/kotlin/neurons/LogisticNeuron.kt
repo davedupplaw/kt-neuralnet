@@ -3,10 +3,10 @@ package neurons
 import java.lang.Math.exp
 
 open class LogisticNeuron(var bias: Double = 3.0,
-                          var inputs: List<Double> = emptyList(),
                           var weights: List<Double> = emptyList(),
                           val activationFunction: (Double) -> Double ) {
-    fun fire() : Double {
+
+    fun fire(inputs: List<Double> = emptyList()) : Double {
         val weightedInput = inputs.zip(weights)
         val weightedSum = weightedInput.sumByDouble { it.first * it.second }
         return activationFunction( weightedSum + bias )

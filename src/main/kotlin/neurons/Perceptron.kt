@@ -1,4 +1,4 @@
 package neurons
 
-class Perceptron(bias : Double = 3.0, inputs: List<Double> = emptyList(), weights: List<Double> = emptyList() ) :
-        LogisticNeuron(bias, inputs, weights, stepFunction)
+class Perceptron(bias: Double = 3.0, weights: List<Double> = emptyList() ) :
+        LogisticNeuron(bias, weights, stepFunction)

@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 @RunWith(JUnitPlatform::class)
 internal class InputNeuronTest: Spek({
     describe("an input neuron") {
-        var unit = InputNeuron(1.0)
+        var unit = InputNeuron()
 
         on("construction") {
             it("should have a bias of 0") {
@@ -27,8 +27,8 @@ internal class InputNeuronTest: Spek({
         on("firing") {
             it("should return the input value") {
                 for( i in 1..5 ) {
-                    unit = InputNeuron( i.toDouble() );
-                    assertThat( unit.fire() ).isEqualTo( i.toDouble() );
+                    unit = InputNeuron();
+                    assertThat( unit.fire( listOf(i.toDouble()) ) ).isEqualTo( i.toDouble() );
                 }
             }
         }
