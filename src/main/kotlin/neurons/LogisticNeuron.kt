@@ -14,6 +14,4 @@ open class LogisticNeuron(var bias: Double = 3.0,
 data class WeightedInput(val input: Double, val weight: Double)
 
 val stepFunction =  { biasedSum: Double -> if (biasedSum > 0) 1.0 else 0.0 }
-val sigmoidFunction =  {
-    biasedSum: Double -> 1.0 / (1.0 + exp(-biasedSum))
-}
+val sigmoidFunction =  { biasedSum: Double -> 1.0 / (1.0 + exp(-biasedSum)) }
