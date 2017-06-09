@@ -7,6 +7,9 @@ open class LogisticNeuron(var bias: Double = 3.0,
                           val activationFunction: (Double) -> Double ) {
 
     fun fire(inputs: List<Double> = emptyList()) : Double {
+        if (weights.isEmpty()) {
+            weights = (1..inputs.size).map { 1.0 }
+        }
         val weightedInput = inputs.zip(weights)
         val weightedSum = weightedInput.sumByDouble { it.first * it.second }
         return activationFunction( weightedSum + bias )
