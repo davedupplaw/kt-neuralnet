@@ -14,6 +14,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>koma</groupId>
+            <artifactId>core</artifactId>
+            <version>0.10</version>
+        </dependency>
+        <dependency>
+            <groupId>koma</groupId>
+            <artifactId>backend-matrix-mtj</artifactId>
+            <version>0.10</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
             <version>LATEST</version>
@@ -23,13 +34,13 @@
             <artifactId>kotlin-stdlib-jre8</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test</artifactId>
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -52,6 +63,7 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>5.0.0-M4</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.spek</groupId>
@@ -78,6 +90,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>bintray</id>
+            <url>http://dl.bintray.com/kyonifer/maven</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
 
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>

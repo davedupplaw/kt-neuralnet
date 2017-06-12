@@ -1,6 +1,7 @@
 
 import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
+import neurons.Perceptron
 import org.assertj.core.api.KotlinAssertions.assertThat
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
@@ -12,19 +13,31 @@ import org.mockito.Mockito.verify
 
 @RunWith(JUnitPlatform::class)
 internal class NeuralNetworkTest: Spek({
-    describe("A neural network having one network layer") {
-        val givenInput = listOf( 2.0, 4.0 )
-        val finalOutput = mutableListOf( 0.2, 0.3 )
-        val mockLayer = mock<NetworkLayer>{
-            on { process(givenInput) } doReturn finalOutput
+    describe("A neural network having an input and output layer") {
+        val givenInput = listOf(2.0, 4.0)
+        val finalOutput = mutableListOf(0.2, 0.3)
+
+        val inputLayer = InputNetworkLayer(2)
+
+        on("being constructed") {
+            val outputLayer = HiddenNetworkLayer(3, { createNeuron<Perceptron>() })
+            NeuralNetwork(listOf(inputLayer, outputLayer))
+
+            it("should set the output layer previous layer to the input layer" ) {
+                assertThat( outputLayer.previousLayer ).isEqualTo( inputLayer )
+            }
         }
-        val unit = NeuralNetwork( listOf( mockLayer ) )
 
         on("being called to process an input") {
-            val itsTheFinalOutputDoDoDoDooo = unit.process( givenInput )
+            val outputLayer = mock<HiddenNetworkLayer> {
+                on { process(givenInput) } doReturn finalOutput
+            }
+            val unit = NeuralNetwork(listOf(inputLayer, outputLayer))
+
+            val itsTheFinalOutputDoDoDoDooo = unit.process(givenInput)
 
             it("should call the first layer to process the input") {
-                verify( mockLayer ).process( givenInput )
+                verify(outputLayer).process(givenInput)
             }
 
             it("should return the output from the last layer") {
@@ -35,11 +48,11 @@ internal class NeuralNetworkTest: Spek({
 
     describe("A neural network having two network layers") {
         val outputOfFirstLayer = mutableListOf( 0.2, 0.3 )
-        val mockLayer1 = mock<NetworkLayer> {
+        val mockLayer1 = mock<HiddenNetworkLayer> {
             on { process( listOf(2.0, 4.0) ) } doReturn outputOfFirstLayer
         }
         val finalOutput = mutableListOf( 0.02, 0.03 )
-        val mockLayer2 = mock<NetworkLayer>{
+        val mockLayer2 = mock<HiddenNetworkLayer>{
             on { process(outputOfFirstLayer) } doReturn finalOutput
         }
 
