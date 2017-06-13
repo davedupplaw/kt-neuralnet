@@ -1,4 +1,5 @@
 
+import koma.mat
 import org.assertj.core.api.KotlinAssertions.assertThat
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
@@ -18,7 +19,7 @@ internal class InputNetworkLayerTest : Spek ({
         }
 
         on("process") {
-            var input = listOf(2.0,4.0)
+            var input = mat[2.0,4.0].T
             var output = InputNetworkLayer(10).process(input)
             it("should return the input as the output") {
                 assertThat(output).isEqualTo(input)

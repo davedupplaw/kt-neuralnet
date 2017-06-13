@@ -1,7 +1,6 @@
 
 import koma.matrix.Matrix
 import koma.matrix.mtj.MTJMatrixFactory
-import neurons.LogisticNeuron
 
 class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
     init {
@@ -12,7 +11,7 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
         }
     }
 
-    fun process(givenInput: List<Double>) : List<Double> {
+    fun feedforward(givenInput: Matrix<Double>) : Matrix<Double> {
         var inputValues = givenInput
         networkLayers.forEach { inputValues = it.process(inputValues) }
         return inputValues
@@ -23,35 +22,32 @@ interface NetworkLayer {
     val numberOfNeurons: Int
     var previousLayer: NetworkLayer?
 
-    fun process( input: List<Double> ) : List<Double>
+    fun process( input: Matrix<Double> ) : Matrix<Double>
 }
 
-class HiddenNetworkLayer(override val numberOfNeurons: Int, creator: () -> LogisticNeuron ) : NetworkLayer {
+class HiddenNetworkLayer(override val numberOfNeurons: Int, val activationFunction: (Double) -> Double) : NetworkLayer {
     override var previousLayer : NetworkLayer? = null
         set(value) {
-            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, value!!.numberOfNeurons)
-            biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1)
+            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, value!!.numberOfNeurons).fill( { _,_ -> Math.random() } )
+            biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1).fill( { _,_ -> Math.random() } )
             field = value
         }
 
     var weightMatrix: Matrix<Double>? = null
     var biasVector: Matrix<Double>? = null
-    val neuronList : MutableList<LogisticNeuron> = mutableListOf()
+    var weightedInput: Matrix<Double>? = null
 
-    init {
-        for( i in 1..numberOfNeurons ) {
-            neuronList.add(creator())
-        }
+    override fun process(input: Matrix<Double>): Matrix<Double> {
+        val z = weightMatrix!! * input + biasVector!!
+        weightedInput = z
+        return z.map( activationFunction )
     }
-
-    override fun process(input: List<Double>) = neuronList.map { it.fire(input) }.toList()
 }
 
 class InputNetworkLayer(override val numberOfNeurons: Int) : NetworkLayer {
     override var previousLayer: NetworkLayer? = null
-    override fun process(input: List<Double>) = input
+    override fun process(input: Matrix<Double>) = input
 }
 
-inline fun <reified T : LogisticNeuron> createNeuron() : LogisticNeuron {
-    return T::class.java.newInstance();
-}
+val stepFunction =  { biasedSum: Double -> if (biasedSum > 0) 1.0 else 0.0 }
+val sigmoidFunction =  { biasedSum: Double -> 1.0 / (1.0 + Math.exp(-biasedSum)) }
