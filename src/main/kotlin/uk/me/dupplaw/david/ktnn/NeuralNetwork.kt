@@ -2,8 +2,9 @@ package uk.me.dupplaw.david.ktnn
 
 import koma.matrix.Matrix
 import koma.matrix.mtj.MTJMatrixFactory
-
 class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
+    var trainedOutputs: List<Matrix<Double>> = mutableListOf()
+
     init {
         networkLayers.forEachIndexed { index, networkLayer ->
             if( index > 0 ) {
@@ -21,11 +22,39 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
         return inputValues
     }
 
-    fun backPropagate(expected: Matrix<Double>) {
+    fun training(trainingInputs: Matrix<Double>) {
+        val nTrainingExamples = trainingInputs.numCols()
+
+        val list = networkLayers.filterIndexed { i,_ -> i != 0 }.map { networkLayer ->
+            MTJMatrixFactory().zeros( networkLayer.numberOfNeurons, nTrainingExamples )
+        }.toMutableList()
+
+        (0 until nTrainingExamples).map { trainingExampleIndex ->
+            val givenInput = trainingInputs.selectCols(trainingExampleIndex)
+            feedforward(givenInput)
+            networkLayers.filterIndexed { i,_ -> i != 0 }.forEachIndexed { index, networkLayer ->
+                list[index].setCol( trainingExampleIndex, networkLayer.layerOutput!! )
+            }
+        }
+        trainedOutputs = list
+    }
+
+    fun backPropagate(trainingExample: Matrix<Double>) {
+        calculateTrainingError(trainingExample)
+        updateErrors()
+        updateWeights()
+    }
+
+    private fun updateWeights() {
+    }
+
+    private fun calculateTrainingError(expected: Matrix<Double>) {
         (networkLayers.last() as HiddenNetworkLayer).apply {
             outputError = costFunction.derivative(expected, layerOutput!!) ʘ weightedInput!!.map { activationFunction.derivative(it) }
         }
+    }
 
+    private fun updateErrors() {
         for (i in networkLayers.size - 2 downTo 1) {
             val currentLayer = networkLayers.get(i) as HiddenNetworkLayer
             val nextLayer = networkLayers.get(i + 1) as HiddenNetworkLayer
@@ -58,14 +87,15 @@ class HiddenNetworkLayer(override val numberOfNeurons: Int,
 
     override var layerOutput: Matrix<Double>? = null
     override var previousLayer : NetworkLayer? = null
-        set(value) {
-            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, value!!.numberOfNeurons).fill( { _, _ -> Math.random() } )
+        set(previous) {
+            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, previous!!.numberOfNeurons).fill( { _, _ -> Math.random() } )
             biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1).fill( { _, _ -> Math.random() } )
-            field = value
+            field = previous
         }
 
     override fun process(input: Matrix<Double>) {
-        val z = weightMatrix!! * input + biasVector!!
+        var z = weightMatrix!! * input
+        z += biasVector!!
         weightedInput = z
         layerOutput = z.map { activationFunction.apply(it) }
     }
@@ -87,10 +117,10 @@ class HiddenNetworkLayer(override val numberOfNeurons: Int,
 fun Matrix<Double>.dims() : String = "${this?.numRows()}x${this?.numCols()}"
 infix fun Matrix<Double>.ʘ(that: Matrix<Double>): Matrix<Double> {
     if( this.numRows() != that.numRows() ) {
-        throw IndexOutOfBoundsException("A.numRows != B.numRows (${this.numRows()} != ${that.numRows()}")
+        throw IndexOutOfBoundsException("A.numRows != B.numRows (${this.numRows()} != ${that.numRows()})")
     }
     if( this.numCols() != that.numCols() ) {
-        throw IndexOutOfBoundsException("A.numCols != B.numCols (${this.numCols()} != ${that.numCols()}")
+        throw IndexOutOfBoundsException("A.numCols != B.numCols (${this.numCols()} != ${that.numCols()})")
     }
 
     return this.mapIndexed { row, col, ele -> that[row, col] * ele }
