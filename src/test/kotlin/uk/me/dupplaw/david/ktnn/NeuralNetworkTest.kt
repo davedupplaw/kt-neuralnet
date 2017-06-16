@@ -85,8 +85,6 @@ internal class NeuralNetworkTest: Spek({
 
         on("training") {
             val trainingInputs = mat[1,2 end -3,-4 end 5,6].T
-            val expectedOutputFromHiddenLayer = mat[1,0,1]
-            val expectedOutputFromOutputLayer = mat[1,1 end 0,0 end 1,1].T
             val inputLayer = InputNetworkLayer(2)
             val hiddenLayer = HiddenNetworkLayer(1,StepFunction(),MeanSquaredError())
             var outputLayer = HiddenNetworkLayer(2,StepFunction(),MeanSquaredError())
@@ -101,9 +99,47 @@ internal class NeuralNetworkTest: Spek({
             unit.training(trainingInputs)
 
             it("should store all layer outputs per training example") {
+                val expectedOutputFromHiddenLayer = mat[1,0,1]
+                val expectedOutputFromOutputLayer = mat[1,1 end 0,0 end 1,1].T
+
                 assertThat( unit.trainedOutputs ).isNotNull().hasSize(2)
                 assertMatrixEquals( expectedOutputFromHiddenLayer, unit.trainedOutputs.get(0) )
                 assertMatrixEquals( expectedOutputFromOutputLayer, unit.trainedOutputs.get(1) )
+            }
+
+            it("should store all the layer weighted inputs per training example") {
+                val expectedWeightedInputToHiddenLayer = mat[6,-4,14]
+                val expectedWeightedInputToOutputLayer = mat[3,4 end 0,0 end 3,4].T
+
+                assertThat( unit.weightedInputs ).isNotNull().hasSize(2)
+                assertMatrixEquals(expectedWeightedInputToHiddenLayer, unit.weightedInputs.get(0))
+                assertMatrixEquals(expectedWeightedInputToOutputLayer, unit.weightedInputs.get(1))
+            }
+        }
+
+        on("training with a Sigmoid") {
+            val trainingInputs = mat[1,2 end -3,-4 end 5,6].T
+            val inputLayer = InputNetworkLayer(2)
+            val hiddenLayer = HiddenNetworkLayer(1,SigmoidFunction(),MeanSquaredError())
+            var outputLayer = HiddenNetworkLayer(2,SigmoidFunction(),MeanSquaredError())
+
+            val unit = NeuralNetwork(listOf(inputLayer, hiddenLayer, outputLayer))
+
+            hiddenLayer.biasVector = mat[3]
+            hiddenLayer.weightMatrix = mat[1.0,1.0]
+            outputLayer.biasVector = mat[0, 0].T
+            outputLayer.weightMatrix = mat[3.0, 4.0].T
+
+            unit.training(trainingInputs)
+
+            val desiredOutputLayerOutputs = mat[ 1, 1 end 0.5, 0.5 end 0.95257401412533, 0.98201373128967 ].T
+            val expectedOutputLayerErrors  = (unit.trainedOutputs[unit.trainedOutputs.lastIndex] - desiredOutputLayerOutputs) ʘ
+                    unit.weightedInputs[unit.weightedInputs.lastIndex].map { SigmoidFunction().derivative(it) }
+
+            it("should store all the neuron errors per training example per layer") {
+                assertThat( unit.trainedErrors ).isNotNull().hasSize(2)
+//                assertMatrixEquals( expectedOutputFromHiddenLayer, unit.trainedErrors.get(0) )
+                assertMatrixEquals( expectedOutputLayerErrors, unit.trainedErrors.get(1) )
             }
         }
 

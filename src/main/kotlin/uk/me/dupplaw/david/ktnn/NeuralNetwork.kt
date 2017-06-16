@@ -1,8 +1,11 @@
 package uk.me.dupplaw.david.ktnn
 
 import koma.matrix.Matrix
+import koma.matrix.mtj.MTJMatrix
 import koma.matrix.mtj.MTJMatrixFactory
 class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
+    var trainedErrors: List<Matrix<Double>> = mutableListOf()
+    var weightedInputs: List<Matrix<Double>> = mutableListOf()
     var trainedOutputs: List<Matrix<Double>> = mutableListOf()
 
     init {
@@ -25,19 +28,39 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
     fun training(trainingInputs: Matrix<Double>) {
         val nTrainingExamples = trainingInputs.numCols()
 
-        val list = networkLayers.filterIndexed { i,_ -> i != 0 }.map { networkLayer ->
-            MTJMatrixFactory().zeros( networkLayer.numberOfNeurons, nTrainingExamples )
-        }.toMutableList()
+        val trainedErrorList  = createMatrixForEachNodeBy(nTrainingExamples)
+        val trainedOutputList = createMatrixForEachNodeBy(nTrainingExamples)
+        val weightedInputList = createMatrixForEachNodeBy(nTrainingExamples)
 
         (0 until nTrainingExamples).map { trainingExampleIndex ->
             val givenInput = trainingInputs.selectCols(trainingExampleIndex)
             feedforward(givenInput)
-            networkLayers.filterIndexed { i,_ -> i != 0 }.forEachIndexed { index, networkLayer ->
-                list[index].setCol( trainingExampleIndex, networkLayer.layerOutput!! )
+            getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
+                if( networkLayer is HiddenNetworkLayer ) {
+                    trainedOutputList[index].setCol(trainingExampleIndex, networkLayer.layerOutput!!)
+                    weightedInputList[index].setCol(trainingExampleIndex, networkLayer.weightedInput!!)
+                }
+            }
+            backPropagate(givenInput)
+            getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
+                if( networkLayer is HiddenNetworkLayer ) {
+                    trainedErrorList[index].setCol(trainingExampleIndex, networkLayer.outputError!!)
+                }
             }
         }
-        trainedOutputs = list
+
+        trainedOutputs = trainedOutputList
+        weightedInputs = weightedInputList
+        trainedErrors = trainedErrorList
     }
+
+    private fun createMatrixForEachNodeBy(nTrainingExamples: Int): MutableList<MTJMatrix> {
+        return getAllLayersButTheInputLayer().map { networkLayer ->
+            MTJMatrixFactory().zeros(networkLayer.numberOfNeurons, nTrainingExamples)
+        }.toMutableList()
+    }
+
+    private fun getAllLayersButTheInputLayer() = networkLayers.filterIndexed { i, _ -> i != 0 }
 
     fun backPropagate(trainingExample: Matrix<Double>) {
         calculateTrainingError(trainingExample)
@@ -94,8 +117,7 @@ class HiddenNetworkLayer(override val numberOfNeurons: Int,
         }
 
     override fun process(input: Matrix<Double>) {
-        var z = weightMatrix!! * input
-        z += biasVector!!
+        var z = weightMatrix!! * input + biasVector!!
         weightedInput = z
         layerOutput = z.map { activationFunction.apply(it) }
     }
