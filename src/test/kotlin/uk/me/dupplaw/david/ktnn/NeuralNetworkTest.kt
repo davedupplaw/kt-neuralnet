@@ -21,7 +21,7 @@ internal class NeuralNetworkTest: Spek({
         val finalOutput = mat[0.2, 0.3].T
         val givenInput = mat[2.0, 4.0].T
 
-        on("being constructed") {
+        xon("being constructed") {
             val inputLayer = InputNetworkLayer(2)
             val outputLayer = HiddenNetworkLayer(3, StepFunction(), MeanSquaredError())
             NeuralNetwork(listOf(inputLayer, outputLayer))
@@ -31,7 +31,7 @@ internal class NeuralNetworkTest: Spek({
             }
         }
 
-        on("feeding forward the input") {
+        xon("feeding forward the input") {
             val inputLayerOutput = mat[7.0,8.0].T
 
             val inputLayer = mock<InputNetworkLayer> {}
@@ -53,7 +53,7 @@ internal class NeuralNetworkTest: Spek({
             }
         }
 
-        on("propagating backwards") {
+        xon("propagating backwards") {
             val desiredOutput = mat[10, 20].T
             val mockActivationFunction = mock<ActivationFunction> {
                 on{ derivative(12.0) } doReturn 8.0
@@ -84,7 +84,7 @@ internal class NeuralNetworkTest: Spek({
             }
         }
 
-        on("training") {
+        xon("training") {
             val trainingInputs = mat[1,2 end -3,-4 end 5,6].T
             val desiredOutputLayerOutputs = mat[0,0 end 0,0 end 0,0].T
             val inputLayer = InputNetworkLayer(2)
@@ -124,7 +124,7 @@ internal class NeuralNetworkTest: Spek({
             val desiredOutputLayerOutputs = mat[ 1, 1 end 0.5, 0.5 end 0.95257401412533, 0.98201373128967 ].T
             val inputLayer = InputNetworkLayer(2)
             val hiddenLayer = HiddenNetworkLayer(1,SigmoidFunction(),MeanSquaredError())
-            var outputLayer = HiddenNetworkLayer(2,SigmoidFunction(),MeanSquaredError())
+            val outputLayer = HiddenNetworkLayer(2,SigmoidFunction(),MeanSquaredError())
 
             val unit = NeuralNetwork(listOf(inputLayer, hiddenLayer, outputLayer))
 
@@ -135,21 +135,34 @@ internal class NeuralNetworkTest: Spek({
 
             unit.training(trainingInputs, desiredOutputLayerOutputs)
 
-            val expectedOutputLayerErrors  = (unit.trainedOutputs[unit.trainedOutputs.lastIndex] - desiredOutputLayerOutputs) ʘ
-                    unit.weightedInputs[unit.weightedInputs.lastIndex].map { SigmoidFunction().derivative(it) }
-            val expectedHiddenLayerErrors  = (outputLayer.weightMatrix!!.T * expectedOutputLayerErrors) ʘ
-                    unit.weightedInputs[unit.weightedInputs.lastIndex -1].map { SigmoidFunction().derivative(it) }
+            val outputLayerWeightMatrixBeforeUpdate = mat[3.0, 4.0].T
+            val hiddenLayerWeightMatrixBeforeUpdate = mat[1.0, 1.0]
 
             it("should store all the neuron errors per training example per layer") {
+                val expectedOutputLayerErrors  = (unit.trainedOutputs[unit.trainedOutputs.lastIndex] - desiredOutputLayerOutputs) ʘ
+                        unit.weightedInputs[unit.weightedInputs.lastIndex].map { SigmoidFunction().derivative(it) }
+                val expectedHiddenLayerErrors  = (outputLayerWeightMatrixBeforeUpdate.T * expectedOutputLayerErrors) ʘ
+                        unit.weightedInputs[unit.weightedInputs.lastIndex -1].map { SigmoidFunction().derivative(it) }
+
                 assertThat( unit.trainedErrors ).isNotNull().hasSize(2)
                 assertMatrixEquals( expectedOutputLayerErrors, unit.trainedErrors.get(1) )
                 assertMatrixEquals( expectedHiddenLayerErrors, unit.trainedErrors.get(0) )
             }
-        }
 
-        xon("updating weights") {
-            it("should work") {
+            it("should update the weights for the layers") {
+                val learningRate = 3.0
+                val errorsFromOutputLayer = unit.trainedErrors[unit.trainedErrors.lastIndex]
+                val errorsFromHiddenLayer = unit.trainedErrors[unit.trainedErrors.lastIndex-1]
+                val outputFromHiddenLayer = unit.trainedOutputs[unit.trainedOutputs.lastIndex-1].T
+                val outputFromInputLayer  = trainingInputs.T
 
+                val expectedUpdatedOutputLayerWeightMatrix = outputLayerWeightMatrixBeforeUpdate -
+                        (errorsFromOutputLayer * outputFromHiddenLayer) * (learningRate/trainingInputs.numCols())
+                val expectedUpdatedHiddenLayerWeightMatrix = hiddenLayerWeightMatrixBeforeUpdate -
+                        (errorsFromHiddenLayer * outputFromInputLayer) * (learningRate/trainingInputs.numCols())
+
+                assertMatrixEquals( expectedUpdatedOutputLayerWeightMatrix, outputLayer.weightMatrix!!, 0.00001 )
+                assertMatrixEquals( expectedUpdatedHiddenLayerWeightMatrix, hiddenLayer.weightMatrix!!, 0.00001 )
             }
         }
     }

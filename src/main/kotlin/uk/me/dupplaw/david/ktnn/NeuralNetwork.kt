@@ -7,6 +7,7 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
     var trainedErrors: List<Matrix<Double>> = mutableListOf()
     var weightedInputs: List<Matrix<Double>> = mutableListOf()
     var trainedOutputs: List<Matrix<Double>> = mutableListOf()
+    var learningRate: Double = 3.0
 
     init {
         networkLayers.forEachIndexed { index, networkLayer ->
@@ -26,6 +27,8 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
     }
 
     fun training(trainingInputs: Matrix<Double>, trainingLabels: Matrix<Double>) {
+        val allLayersButTheInputLayer = getAllLayersButTheInputLayer()
+
         val nTrainingExamples = trainingInputs.numCols()
 
         val trainedErrorList  = createMatrixForEachNodeBy(nTrainingExamples)
@@ -37,14 +40,14 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
             val desiredOutput = trainingLabels.selectCols(trainingExampleIndex)
 
             feedforward(givenInput)
-            getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
+            allLayersButTheInputLayer.forEachIndexed { index, networkLayer ->
                 if( networkLayer is HiddenNetworkLayer ) {
                     trainedOutputList[index].setCol(trainingExampleIndex, networkLayer.layerOutput!!)
                     weightedInputList[index].setCol(trainingExampleIndex, networkLayer.weightedInput!!)
                 }
             }
             backPropagate(desiredOutput)
-            getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
+            allLayersButTheInputLayer.forEachIndexed { index, networkLayer ->
                 if( networkLayer is HiddenNetworkLayer ) {
                     trainedErrorList[index].setCol(trainingExampleIndex, networkLayer.outputError!!)
                 }
@@ -54,6 +57,13 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
         trainedOutputs = trainedOutputList
         weightedInputs = weightedInputList
         trainedErrors = trainedErrorList
+
+        (networkLayers.size-1 downTo 1).map { index ->
+            val networkLayer = networkLayers[index] as HiddenNetworkLayer
+            val previousLayerOutput = if (index == 1) trainingInputs.T else trainedOutputs[index-2].T
+            networkLayer.weightMatrix = networkLayer.weightMatrix!!.minus(
+                    trainedErrors[index-1] * previousLayerOutput * (learningRate / trainingInputs.numCols()))
+        }
     }
 
     private fun createMatrixForEachNodeBy(nTrainingExamples: Int): MutableList<MTJMatrix> {
@@ -91,74 +101,5 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
 
     override fun toString(): String {
         return "NeuralNetwork(networkLayers=${networkLayers.mapIndexed { idx, it -> "\n\t $idx - "+it.toString()}})"
-    }
-}
-
-interface NetworkLayer {
-    val numberOfNeurons: Int
-    var previousLayer: NetworkLayer?
-    var layerOutput: Matrix<Double>?
-
-    fun process( input: Matrix<Double>)
-}
-
-class HiddenNetworkLayer(override val numberOfNeurons: Int,
-                         val activationFunction: ActivationFunction,
-                         val costFunction: CostFunction) : NetworkLayer {
-    var weightMatrix: Matrix<Double>? = null
-    var biasVector: Matrix<Double>? = null
-    var weightedInput: Matrix<Double>? = null
-    var outputError: Matrix<Double>? = null
-
-    override var layerOutput: Matrix<Double>? = null
-    override var previousLayer : NetworkLayer? = null
-        set(previous) {
-            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, previous!!.numberOfNeurons).fill( { _, _ -> Math.random() } )
-            biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1).fill( { _, _ -> Math.random() } )
-            field = previous
-        }
-
-    override fun process(input: Matrix<Double>) {
-        var z = weightMatrix!! * input + biasVector!!
-        weightedInput = z
-        layerOutput = z.map { activationFunction.apply(it) }
-    }
-
-    override fun toString(): String {
-        return "HiddenNetworkLayer(numberOfNeurons=$numberOfNeurons, " +
-                "activationFunction=${activationFunction::class.java.simpleName}, " +
-                "costFunction=${costFunction::class.java.simpleName}, " +
-                "weightMatrix=${weightMatrix?.dims()}, " +
-                "biasVector=${biasVector?.dims()}, " +
-                "weightedInput=${weightedInput?.dims()}, " +
-                "outputError=${outputError?.dims()}, " +
-                "layerOutput=${layerOutput?.dims()})"
-    }
-
-
-}
-
-fun Matrix<Double>.dims() : String = "${this?.numRows()}x${this?.numCols()}"
-infix fun Matrix<Double>.ʘ(that: Matrix<Double>): Matrix<Double> {
-    if( this.numRows() != that.numRows() ) {
-        throw IndexOutOfBoundsException("A.numRows != B.numRows (${this.numRows()} != ${that.numRows()})")
-    }
-    if( this.numCols() != that.numCols() ) {
-        throw IndexOutOfBoundsException("A.numCols != B.numCols (${this.numCols()} != ${that.numCols()})")
-    }
-
-    return this.mapIndexed { row, col, ele -> that[row, col] * ele }
-}
-
-class InputNetworkLayer(override val numberOfNeurons: Int) : NetworkLayer {
-    override var layerOutput: Matrix<Double>? = null
-    override var previousLayer: NetworkLayer? = null
-
-    override fun process(input: Matrix<Double>) {
-        this.layerOutput = input
-    }
-
-    override fun toString(): String {
-        return "InputNetworkLayer(numberOfNeurons=$numberOfNeurons, layerOutput=${layerOutput?.dims()})"
     }
 }

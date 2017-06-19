@@ -8,8 +8,10 @@ import java.io.File
 import java.io.FileInputStream
 
 class MNIST {
-    var trainingImages: List<MNISTImage>? = null
-    var testImages: List<MNISTImage>? = null
+    var trainingImages: Matrix<Double>? = null
+    var trainingLabels: Matrix<Double>? = null
+    var testImages: Matrix<Double>? = null
+    var testLabels: Matrix<Double>? = null
 
     fun read(directory: File) : MNIST {
         val trainingImagesFile = directory.resolve("train-images-idx3-ubyte")
@@ -19,11 +21,11 @@ class MNIST {
 
         println( "Reading training images...." )
         trainingImages = MNISTImageFileReader(trainingImagesFile).read()
-        MNISTLabelFileReader(trainingLabelsFile, trainingImages!!).read()
+        trainingLabels = MNISTLabelFileReader(trainingLabelsFile, trainingImages!!).read()
 
         println( "Reading test images...." )
         testImages = MNISTImageFileReader(testImagesFile).read()
-        MNISTLabelFileReader(testLabelsFile, testImages!!).read()
+        testLabels = MNISTLabelFileReader(testLabelsFile, testImages!!).read()
 
         println( "Data Reading Done!" )
 
@@ -31,10 +33,10 @@ class MNIST {
     }
 }
 
-data class MNISTImage(val width: Int, val height: Int, val data: Matrix<Double>, var label: Int? = null)
+//data class MNISTImage(val width: Int, val height: Int, val data: Matrix<Double>, var label: Int? = null)
 
 class MNISTImageFileReader(val imageFile: File) {
-    fun read(): List<MNISTImage> {
+    fun read(): Matrix<Double> {
         DataInputStream(BufferedInputStream(FileInputStream(imageFile))).use { dis ->
             val magicNumber = dis.readInt()
             if (magicNumber != 2051)
@@ -47,21 +49,19 @@ class MNISTImageFileReader(val imageFile: File) {
             println( "\tReading $numberOfImages images" )
             println( "\tEach image is $numberOfColumnsPerImage x $numberOfRowsPerImage" )
 
-            return (1..numberOfImages).map {
-                val matrix = MTJMatrixFactory().zeros(numberOfRowsPerImage*numberOfColumnsPerImage, 1)
-
+            val matrix = MTJMatrixFactory().zeros(numberOfRowsPerImage*numberOfColumnsPerImage, numberOfImages)
+            (1..numberOfImages).map {
                 for (p in 0 until numberOfRowsPerImage * numberOfColumnsPerImage) {
-                    matrix[p, 0] = dis.readUnsignedByte() / 255.0
+                    matrix[p, it-1] = dis.readUnsignedByte() / 255.0
                 }
-
-                MNISTImage(numberOfColumnsPerImage, numberOfRowsPerImage, matrix)
-            }.toList()
+            }
+            return matrix
         }
     }
 }
 
-class MNISTLabelFileReader(val labelFile: File, var trainingImages: List<MNISTImage>) {
-    fun read() {
+class MNISTLabelFileReader(val labelFile: File, var trainingImages: Matrix<Double>) {
+    fun read() : Matrix<Double> {
         DataInputStream(BufferedInputStream(FileInputStream(labelFile))).use { dis ->
             val magicNumber = dis.readInt()
             if (magicNumber != 2049)
@@ -71,9 +71,11 @@ class MNISTLabelFileReader(val labelFile: File, var trainingImages: List<MNISTIm
 
             println( "\tReading $numLabel labels" )
 
+            val labelMatrix = MTJMatrixFactory().zeros( 1, trainingImages.numCols() )
             (1..numLabel).map {
-                trainingImages.get(it-1).label = dis.readUnsignedByte()
+                labelMatrix[0,it-1] = dis.readUnsignedByte().toDouble()
             }
+            return labelMatrix
         }
     }
 }
@@ -88,6 +90,32 @@ fun main(args: Array<String>) {
 
     println( "Network: $network")
 
-    val givenInput = mnist.testImages!![0].data
-    network.feedforward( givenInput )
+    println( "Training...")
+    (0..10).map {
+        print("    - Iteration $it...")
+
+        network.training(mnist.trainingImages!!, mnist.trainingLabels!!)
+
+        val avg = network.trainedErrors[ network.trainedErrors.lastIndex ].mean()
+        println("... Average error: $avg")
+    }
+
+    println( "Testing...")
+    var nCorrect = 0
+    (0..mnist.testImages!!.numCols()-1).map{ indx ->
+        val image = mnist.testImages!!.selectCols(indx)
+        val number = mnist.testLabels!![0,indx].toInt()
+
+        network.feedforward( image )
+
+        val maxNeuron = network.networkLayers[ network.networkLayers.lastIndex ].layerOutput!!.argMax();
+
+        println( "Test image $indx should be $number classified as $maxNeuron" )
+
+        if( maxNeuron == number ) {
+            nCorrect++
+        }
+    }
+
+    println( "Number correct: $nCorrect / ${mnist.testImages!!.numCols()} - ${nCorrect / mnist.testImages!!.numCols().toDouble()*100.0}%")
 }
