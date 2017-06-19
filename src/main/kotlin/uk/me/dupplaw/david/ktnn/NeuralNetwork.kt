@@ -25,7 +25,7 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
         return inputValues
     }
 
-    fun training(trainingInputs: Matrix<Double>) {
+    fun training(trainingInputs: Matrix<Double>, trainingLabels: Matrix<Double>) {
         val nTrainingExamples = trainingInputs.numCols()
 
         val trainedErrorList  = createMatrixForEachNodeBy(nTrainingExamples)
@@ -34,6 +34,8 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
 
         (0 until nTrainingExamples).map { trainingExampleIndex ->
             val givenInput = trainingInputs.selectCols(trainingExampleIndex)
+            val desiredOutput = trainingLabels.selectCols(trainingExampleIndex)
+
             feedforward(givenInput)
             getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
                 if( networkLayer is HiddenNetworkLayer ) {
@@ -41,7 +43,7 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
                     weightedInputList[index].setCol(trainingExampleIndex, networkLayer.weightedInput!!)
                 }
             }
-            backPropagate(givenInput)
+            backPropagate(desiredOutput)
             getAllLayersButTheInputLayer().forEachIndexed { index, networkLayer ->
                 if( networkLayer is HiddenNetworkLayer ) {
                     trainedErrorList[index].setCol(trainingExampleIndex, networkLayer.outputError!!)
@@ -62,8 +64,8 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
 
     private fun getAllLayersButTheInputLayer() = networkLayers.filterIndexed { i, _ -> i != 0 }
 
-    fun backPropagate(trainingExample: Matrix<Double>) {
-        calculateTrainingError(trainingExample)
+    fun backPropagate(desiredOutput: Matrix<Double>) {
+        calculateTrainingError(desiredOutput)
         updateErrors()
         updateWeights()
     }
@@ -71,9 +73,9 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
     private fun updateWeights() {
     }
 
-    private fun calculateTrainingError(expected: Matrix<Double>) {
+    private fun calculateTrainingError(desiredOutput: Matrix<Double>) {
         (networkLayers.last() as HiddenNetworkLayer).apply {
-            outputError = costFunction.derivative(expected, layerOutput!!) ʘ weightedInput!!.map { activationFunction.derivative(it) }
+            outputError = costFunction.derivative(desiredOutput, layerOutput!!) ʘ weightedInput!!.map { activationFunction.derivative(it) }
         }
     }
 
