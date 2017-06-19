@@ -137,13 +137,13 @@ internal class NeuralNetworkTest: Spek({
 
             val expectedOutputLayerErrors  = (unit.trainedOutputs[unit.trainedOutputs.lastIndex] - desiredOutputLayerOutputs) ʘ
                     unit.weightedInputs[unit.weightedInputs.lastIndex].map { SigmoidFunction().derivative(it) }
-            val expectedHiddenLayerErrors  = (unit.trainedOutputs[unit.trainedOutputs.lastIndex] - desiredOutputLayerOutputs) ʘ
-                    unit.weightedInputs[unit.weightedInputs.lastIndex].map { SigmoidFunction().derivative(it) }
+            val expectedHiddenLayerErrors  = (outputLayer.weightMatrix!!.T * expectedOutputLayerErrors) ʘ
+                    unit.weightedInputs[unit.weightedInputs.lastIndex -1].map { SigmoidFunction().derivative(it) }
 
             it("should store all the neuron errors per training example per layer") {
                 assertThat( unit.trainedErrors ).isNotNull().hasSize(2)
                 assertMatrixEquals( expectedOutputLayerErrors, unit.trainedErrors.get(1) )
-//                assertMatrixEquals( expectedHiddenLayerErrors, unit.trainedErrors.get(0) )
+                assertMatrixEquals( expectedHiddenLayerErrors, unit.trainedErrors.get(0) )
             }
         }
 
