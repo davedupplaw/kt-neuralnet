@@ -164,6 +164,23 @@ internal class NeuralNetworkTest: Spek({
                 assertMatrixEquals( expectedUpdatedOutputLayerWeightMatrix, outputLayer.weightMatrix!!, 0.00001 )
                 assertMatrixEquals( expectedUpdatedHiddenLayerWeightMatrix, hiddenLayer.weightMatrix!!, 0.00001 )
             }
+
+            it("should update the biases for the layers") {
+                val learningRate = 3.0
+                val hiddenLayerBiasVectorBeforeUpdate = mat[3]
+                val outputLayerBiasVectorBeforeUpdate = mat[0, 0].T
+
+                val errorsFromOutputLayer = unit.trainedErrors[unit.trainedErrors.lastIndex]
+                val errorsFromHiddenLayer = unit.trainedErrors[unit.trainedErrors.lastIndex-1]
+
+                val expectedUpdatedOutputLayerBiasVector = outputLayerBiasVectorBeforeUpdate -
+                        (errorsFromOutputLayer * mat[1,1,1].T) * (learningRate/trainingInputs.numCols())
+                val expectedUpdatedHiddenLayerBiasVector = hiddenLayerBiasVectorBeforeUpdate -
+                        (errorsFromHiddenLayer * mat[1,1,1].T) * (learningRate/trainingInputs.numCols())
+
+                assertMatrixEquals( expectedUpdatedHiddenLayerBiasVector, hiddenLayer.biasVector!!, 0.00001 )
+                assertMatrixEquals( expectedUpdatedOutputLayerBiasVector, outputLayer.biasVector!!, 0.00001 )
+            }
         }
     }
 })

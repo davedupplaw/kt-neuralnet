@@ -1,5 +1,6 @@
 package uk.me.dupplaw.david.ktnn
 
+import koma.mat
 import koma.matrix.Matrix
 import koma.matrix.mtj.MTJMatrix
 import koma.matrix.mtj.MTJMatrixFactory
@@ -59,10 +60,13 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
         trainedErrors = trainedErrorList
 
         (networkLayers.size-1 downTo 1).map { index ->
+            val learningRateOverNumberOfInputs = (learningRate / trainingInputs.numCols())
             val networkLayer = networkLayers[index] as HiddenNetworkLayer
             val previousLayerOutput = if (index == 1) trainingInputs.T else trainedOutputs[index-2].T
             networkLayer.weightMatrix = networkLayer.weightMatrix!!.minus(
-                    trainedErrors[index-1] * previousLayerOutput * (learningRate / trainingInputs.numCols()))
+                    trainedErrors[index-1] * previousLayerOutput * learningRateOverNumberOfInputs)
+            networkLayer.biasVector = networkLayer.biasVector!!.minus(
+                    trainedErrors[index-1].mapRows { mat[it.elementSum()] } * learningRateOverNumberOfInputs)
         }
     }
 
