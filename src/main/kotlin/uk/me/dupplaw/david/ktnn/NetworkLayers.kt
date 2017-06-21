@@ -23,13 +23,13 @@ class HiddenNetworkLayer(override val numberOfNeurons: Int,
     override var layerOutput: Matrix<Double>? = null
     override var previousLayer : NetworkLayer? = null
         set(previous) {
-            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, previous!!.numberOfNeurons).fill( { _, _ -> Math.random() } )
-            biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1).fill( { _, _ -> Math.random() } )
+            weightMatrix = MTJMatrixFactory().zeros(numberOfNeurons, previous!!.numberOfNeurons).fill( { _, _ -> randomGauss() } )
+            biasVector = MTJMatrixFactory().zeros(numberOfNeurons, 1).fill( { _, _ -> randomGauss() } )
             field = previous
         }
 
     override fun process(input: Matrix<Double>) {
-        var z = weightMatrix!! * input + biasVector!!
+        val z = weightMatrix!! * input + biasVector!!
         weightedInput = z
         layerOutput = z.map { activationFunction.apply(it) }
     }
@@ -61,3 +61,15 @@ class InputNetworkLayer(override val numberOfNeurons: Int) : NetworkLayer {
     }
 }
 
+
+fun randomGauss() : Double {
+    var w  = 0.0
+    var x1 = 0.0
+    do {
+        x1 = 2.0 * Math.random() - 1.0
+        w = x1 * x1
+    } while (w >= 1.0)
+
+    w = Math.sqrt(-2.0 * Math.log(w) / w)
+    return x1 * w
+}

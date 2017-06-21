@@ -41,6 +41,12 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
             val desiredOutput = trainingLabels.selectCols(trainingExampleIndex)
 
             feedforward(givenInput)
+
+            if (trainingExampleIndex==0) {
+                println("++++++++++++++++++++++++++++++++")
+                println(networkLayers[networkLayers.lastIndex].layerOutput!!)
+            }
+
             allLayersButTheInputLayer.forEachIndexed { index, networkLayer ->
                 if( networkLayer is HiddenNetworkLayer ) {
                     trainedOutputList[index].setCol(trainingExampleIndex, networkLayer.layerOutput!!)
@@ -89,7 +95,8 @@ class NeuralNetwork(val networkLayers: List<NetworkLayer>) {
 
     private fun calculateTrainingError(desiredOutput: Matrix<Double>) {
         (networkLayers.last() as HiddenNetworkLayer).apply {
-            outputError = costFunction.derivative(desiredOutput, layerOutput!!) ʘ weightedInput!!.map { activationFunction.derivative(it) }
+            outputError = costFunction.derivative(desiredOutput, layerOutput!!) ʘ
+                    weightedInput!!.map { activationFunction.derivative(it) }
         }
     }
 

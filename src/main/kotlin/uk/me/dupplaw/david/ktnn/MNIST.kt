@@ -2,6 +2,7 @@ package uk.me.dupplaw.david.ktnn
 
 import koma.matrix.Matrix
 import koma.matrix.mtj.MTJMatrixFactory
+import koma.set
 import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.io.File
@@ -71,9 +72,11 @@ class MNISTLabelFileReader(val labelFile: File, var trainingImages: Matrix<Doubl
 
             println( "\tReading $numLabel labels" )
 
-            val labelMatrix = MTJMatrixFactory().zeros( 1, trainingImages.numCols() )
+            val labelMatrix = MTJMatrixFactory().zeros( 10, trainingImages.numCols() )
             (1..numLabel).map {
-                labelMatrix[0,it-1] = dis.readUnsignedByte().toDouble()
+                val expectedVector = MTJMatrixFactory().zeros(10,1)
+                expectedVector[dis.readUnsignedByte(),0] = 1
+                labelMatrix.setCol(it-1, expectedVector)
             }
             return labelMatrix
         }
@@ -87,11 +90,18 @@ fun main(args: Array<String>) {
                                        HiddenNetworkLayer(30, SigmoidFunction(), MeanSquaredError()),
                                        HiddenNetworkLayer(10, SigmoidFunction(), MeanSquaredError())
                                 ))
+    network.learningRate = 5.0
+
+    val firstImage = mnist.trainingImages!!.selectCols(0)
+    val firstLabel = mnist.trainingLabels!!.selectCols(0)
+    println( firstImage )
+    println("---------------------------------------------")
+    println( firstLabel )
 
     println( "Network: $network")
 
     println( "Training...")
-    (0..10).map {
+    (0..200).map {
         print("    - Iteration $it...")
 
         network.training(mnist.trainingImages!!, mnist.trainingLabels!!)
@@ -104,7 +114,7 @@ fun main(args: Array<String>) {
     var nCorrect = 0
     (0..mnist.testImages!!.numCols()-1).map{ indx ->
         val image = mnist.testImages!!.selectCols(indx)
-        val number = mnist.testLabels!![0,indx].toInt()
+        val number = mnist.testLabels!!.selectCols(indx).argMax()
 
         network.feedforward( image )
 
