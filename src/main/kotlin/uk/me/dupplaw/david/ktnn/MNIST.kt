@@ -101,7 +101,7 @@ fun main(args: Array<String>) {
     println( "Network: $network")
 
     println( "Training...")
-    (0..200).map {
+    (0..250).map {
         print("    - Iteration $it...")
 
         network.training(mnist.trainingImages!!, mnist.trainingLabels!!)
